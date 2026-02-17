@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
+    <title>Аюрведа — цветущий сад (полная версия)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Open Sans', system-ui, sans-serif;
+            background: linear-gradient(145deg, #f0f7e9 0%, #e1efe0 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 12px;
+            color: #2f4b3c;
+        }
+
+        .game-container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 250, 235, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 48px 48px 32px 32px;
+            box-shadow: 0 20px 40px rgba(90, 70, 50, 0.15), 0 4px 12px rgba(60, 80, 60, 0.1);
+            padding: 24px 20px 30px;
+            border: 2px solid #e2dccd;
+        }
+
+        /* Цветы (canvas) */
+        .garden {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 10px 5px;
+            background: #d9c9b4;
+            background: radial-gradient(circle at 20% 80%, #c7b69e, #dacbb8);
+            border-radius: 120px 120px 60px 60px;
+            border-bottom: 8px solid #988f7a;
+        }
+
+        .flower-pot {
+            text-align: center;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .flower-pot canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 140px;
+            margin: 0 auto;
+            filter: drop-shadow(0 8px 6px #7f6e5b);
+            transition: transform 0.2s ease;
+        }
+
+        .flower-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .vata-label { color: #6b4f7c; }
+        .pitta-label { color: #b45f3a; }
+        .kapha-label { color: #3f786a; }
+
+        /* прогресс */
+        .progress-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            margin: 16px 0 8px;
+            color: #4f6143;
+            font-weight: 500;
+            background: #e6e3d3;
+            padding: 8px 16px;
+            border-radius: 50px;
+        }
+        .progress-bar-bg {
+            height: 10px;
+            background: #c5bcac;
+            border-radius: 20px;
+            flex: 1;
+            margin: 0 12px;
+        }
+        .progress-fill {
+            height: 10px;
+            background: #8ba888;
+            width: 0%;
+            border-radius: 20px;
+            transition: width 0.3s;
+        }
+
+        /* экраны */
+        .screen {
+            display: none;
+            animation: fade 0.25s;
+        }
+        .screen.active {
+            display: block;
+        }
+        @keyframes fade { from { opacity:0.3; } to { opacity:1; } }
+
+        /* стартовый экран */
+        .start-screen {
+            text-align: center;
+            padding: 24px 12px;
+        }
+        h1 {
+            font-size: 2.2rem;
+            color: #3f6040;
+            margin: 16px 0 8px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-shadow: 3px 3px 0 #ebe1cf;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: #6d7a5a;
+            margin-bottom: 32px;
+            background: #f1ecdb;
+            display: inline-block;
+            padding: 10px 24px;
+            border-radius: 60px;
+        }
+
+        /* ВСЕ КНОПКИ ТЕПЕРЬ ЗАКРУГЛЕНЫ */
+        .btn {
+            background: #adc5a7;
+            border: none;
+            color: #2e4a37;
+            font-weight: 600;
+            font-size: 1.3rem;
+            padding: 16px 42px;
+            border-radius: 60px; /* закругление */
+            box-shadow: 0 10px 0 #6e8b6e, 0 4px 20px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.08s linear;
+            margin: 24px 0 16px;
+            border: 1px solid #ebdfca;
+        }
+        .btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 4px 0 #6e8b6e;
+        }
+        .btn-small {
+            font-size: 1.1rem;
+            padding: 12px 24px;
+            border-radius: 50px; /* закругление */
+            background: #c4d5b5;
+            box-shadow: 0 5px 0 #8a9e7a;
+            border: none;
+            font-weight: 600;
+            color: #2a412a;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .btn-small:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #8a9e7a;
+        }
+        .btn-small:disabled {
+            opacity: 0.4;
+            transform: none;
+            box-shadow: 0 5px 0 #8a9e7a;
+            pointer-events: none;
+        }
+
+        /* вопросы */
+        .question-text {
+            font-size: 1.6rem;
+            font-weight: 500;
+            line-height: 1.3;
+            margin: 20px 0 28px;
+            color: #2d4a38;
+            background: #fffef7;
+            padding: 20px 18px;
+            border-radius: 40px;
+            box-shadow: inset 0 2px 6px #ddd6c4;
+        }
+
+        .answers-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 32px 0;
+        }
+        .answer-btn {
+            background: #fcf9f0;
+            border: 3px solid transparent;
+            border-radius: 50px; /* закругленные углы */
+            padding: 18px 22px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 6px 0 #b9ad95;
+            color: #2e3f2e;
+            font-weight: 500;
+        }
+        .answer-btn.vata:hover { background: #e7daf0; border-color: #9b7bb5; }
+        .answer-btn.pitta:hover { background: #ffead2; border-color: #d88f5c; }
+        .answer-btn.kapha:hover { background: #d5efe5; border-color: #479e86; }
+        .answer-btn.selected-v { background: #d7c5e8; border-color: #6b4f7c; transform: scale(1.02); }
+        .answer-btn.selected-p { background: #ffd7b6; border-color: #b45f3a; }
+        .answer-btn.selected-k { background: #bae1d6; border-color: #3f786a; }
+
+        .dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .vata-dot { background: #8a6d9c; box-shadow: 0 0 0 3px #e9d6ff; }
+        .pitta-dot { background: #d97c42; box-shadow: 0 0 0 3px #ffdbb5; }
+        .kapha-dot { background: #46947b; box-shadow: 0 0 0 3px #c7f0e2; }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 24px 0 10px;
+        }
+
+        /* результаты */
+        .result-chart {
+            background: #fbf5e6;
+            border-radius: 32px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .result-row {
+            display: flex;
+            align-items: center;
+            margin: 16px 0;
+            gap: 12px;
+        }
+        .bar-label {
+            width: 70px;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+        .bar-bg {
+            flex: 1;
+            height: 32px;
+            background: #ddd2bf;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px #9e917d;
+        }
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            color: #fff;
+            line-height: 32px;
+            padding-left: 16px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+            transition: width 0.5s;
+            white-space: nowrap;
+        }
+        .vata-fill { background: #886aa7; }
+        .pitta-fill { background: #c9682c; }
+        .kapha-fill { background: #308770; }
+
+        .recommendation-box {
+            background: #e1dccb;
+            border-radius: 24px;
+            padding: 22px;
+            font-size: 1.2rem;
+            margin: 28px 0 18px;
+            color: #27402b;
+            border-left: 16px solid #9fbb9a;
+        }
+        .disclaimer {
+            font-size: 0.8rem;
+            color: #6f706b;
+            text-align: center;
+            margin-top: 30px;
+            border-top: 1px dashed #b7aa95;
+            padding-top: 16px;
+        }
+        .copy-btn {
+            background: #b1bb9d;
+            box-shadow: 0 5px 0 #727e63;
+            font-size: 1.1rem;
+            padding: 12px 18px;
+            margin: 8px 8px;
+            border-radius: 50px;
+            border: none;
+        }
+        .row-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+        .stage-header {
+            font-size: 1.8rem;
+            margin: 15px 0;
+            color: #42633b;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container" id="gameContainer">
+    <!-- три цветка всегда сверху -->
+    <div class="garden" id="garden">
+        <div class="flower-pot"><canvas id="flowerVata" width="140" height="150"></canvas><div class="flower-label vata-label">ВАТА</div></div>
+        <div class="flower-pot"><canvas id="flowerPitta" width="140" height="150"></canvas><div class="flower-label pitta-label">ПИТТА</div></div>
+        <div class="flower-pot"><canvas id="flowerKapha" width="140" height="150"></canvas><div class="flower-label kapha-label">КАПХА</div></div>
+    </div>
+
+    <!-- Прогресс (виджет) -->
+    <div class="progress-area" id="progressArea">
+        <span id="questionCounter">Вопрос 1 / 36</span>
+        <div class="progress-bar-bg"><div class="progress-fill" id="progressFill" style="width: 2.7%;"></div></div>
+    </div>
+
+    <!-- Экран 1: старт -->
+    <div id="startScreen" class="screen active">
+        <div class="start-screen">
+            <h1>🌿 Аюрведа<br>цветущий сад</h1>
+            <div class="subtitle">полная версия · 60 вопросов</div>
+            <p style="font-size:1.2rem; margin: 20px;">Сначала 36 основных вопросов, затем 24 уточняющих</p>
+            <button class="btn" id="startBtn">Начать тест</button>
+        </div>
+    </div>
+
+    <!-- Экран 2: основной тест (36 вопросов) -->
+    <div id="quizScreen" class="screen">
+        <div class="question-text" id="questionDisplay">...</div>
+        <div class="answers-grid" id="answersContainer"></div>
+        <div class="nav-buttons">
+            <button class="btn-small" id="prevBtn" disabled>← Назад</button>
+            <button class="btn-small" id="nextBtn" disabled>Далее →</button>
+        </div>
+        <div style="text-align: center;" id="submitArea"></div>
+    </div>
+
+    <!-- Экран 3: промежуточный результат -->
+    <div id="interimScreen" class="screen">
+        <h2 class="stage-header">🌱 первая часть завершена</h2>
+        <div class="result-chart" id="interimChart"></div>
+        <div class="recommendation-box" id="interimRecommendation"></div>
+        <div style="display: flex; justify-content: center; gap: 20px;">
+            <button class="btn-small" id="continueToDetailed">📌 продолжить (уточняющие 24)</button>
+            <button class="btn-small" id="restartFromInterim">🔄 заново</button>
+        </div>
+    </div>
+
+    <!-- Экран 4: уточняющие вопросы (24 шт) -->
+    <div id="detailScreen" class="screen">
+        <div class="question-text" id="detailQuestionDisplay">...</div>
+        <div class="answers-grid" id="detailAnswersContainer"></div>
+        <div class="nav-buttons">
+            <button class="btn-small" id="detailPrevBtn" disabled>← Назад</button>
+            <button class="btn-small" id="detailNextBtn" disabled>Далее →</button>
+        </div>
+        <div style="text-align: center;" id="detailSubmitArea"></div>
+    </div>
+
+    <!-- Экран 5: финальный результат -->
+    <div id="finalResultScreen" class="screen">
+        <h2 class="stage-header">🌸 ваш полный портрет</h2>
+        <div class="result-chart" id="finalChart"></div>
+        <div class="recommendation-box" id="finalRecommendation"></div>
+        <div class="row-buttons">
+            <button class="btn-small copy-btn" id="finalCopyBtn">📋 скопировать итог</button>
+            <button class="btn-small copy-btn" id="finalRestartBtn">🔄 заново</button>
+        </div>
+    </div>
+
+    <!-- Дисклеймер -->
+    <div class="disclaimer">⚠️ Игра не является медицинским диагнозом. Для точной диагностики обратитесь к специалисту по Аюрведе.</div>
+</div>
+
+<script>
+(function() {
+    // ---------- 36 основных вопросов (как в ТЗ) ----------
+    const mainQuestions = [
+        { text: "Моё телосложение...", v: "Худощавое, тонкая кость", p: "Среднее, атлетическое", k: "Крупное, плотное" },
+        { text: "Моя кожа чаще всего...", v: "Сухая, тонкая, шершавая", p: "Теплая, жирная, с веснушками", k: "Толстая, влажная, гладкая" },
+        { text: "Мои волосы...", v: "Сухие, ломкие, секутся", p: "Тонкие, мягкие, с ранней сединой", k: "Густые, жирные, блестящие" },
+        { text: "Мой вес...", v: "Трудно набрать", p: "Стабильный", k: "Легко набираю, трудно сбросить" },
+        { text: "Мои суставы...", v: "Хрустят, тонкие", p: "Средние, гибкие", k: "Крупные, хорошо смазаны" },
+        { text: "Мои глаза...", v: "Маленькие, сухие, подвижные", p: "Средние, светочувствительные", k: "Большие, влажные, спокойные" },
+        { text: "Аппетит в течение дня...", v: "Непостоянный", p: "Отличный, 'зверский'", k: "Умеренный, стабильный" },
+        { text: "Пищеварение...", v: "Нерегулярное, газы", p: "Сильное, изжога", k: "Медленное, тяжесть" },
+        { text: "Стул...", v: "Склонность к запорам", p: "Жидкий стул", k: "Регулярный, густой" },
+        { text: "Я плохо переношу...", v: "Холод и ветер", p: "Жару и солнце", k: "Сырость и влажность" },
+        { text: "Мой сон...", v: "Чуткий, беспокойный", p: "Крепкий, но короткий", k: "Глубокий, долгий" },
+        { text: "Я просыпаюсь...", v: "Легко, но не высыпаюсь", p: "Бодрым после 6-7 часов", k: "Тяжело, люблю поспать" },
+        { text: "Моя речь...", v: "Быстрая, говорливая", p: "Четкая, аргументированная", k: "Медленная, немногословная" },
+        { text: "Моя память...", v: "Быстро запоминаю, быстро забываю", p: "Запоминаю суть логически", k: "Помню долго и основательно" },
+        { text: "Я принимаю решения...", v: "Быстро, но могу менять", p: "Четко и решительно", k: "Медленно, обдуманно" },
+        { text: "Моя основная эмоция...", v: "Тревога, страх", p: "Гнев, раздражение", k: "Спокойствие, привязанность" },
+        { text: "В стрессе я...", v: "Паникую, суетлюсь", p: "Становлюсь агрессивным", k: "Замыкаюсь, ухожу в себя" },
+        { text: "Моя походка...", v: "Быстрая, легкая", p: "Целеустремленная", k: "Медленная, плавная" },
+        { text: "Я люблю погоду...", v: "Теплую, солнечную", p: "Прохладную, ветреную", k: "Любую, кроме сырости" },
+        { text: "Мой финансовый стиль...", v: "Трачу быстро, импульсивно", p: "Трачу на цели и статус", k: "Коплю, бережлив" },
+        { text: "Мои руки и ноги...", v: "Часто холодные", p: "Теплые", k: "Прохладные, влажные" },
+        { text: "Я потею...", v: "Мало", p: "Сильно и резко", k: "Умеренно и прохладно" },
+        { text: "Моя выносливость...", v: "Низкая, быстро устаю", p: "Средняя, целеустремлен", k: "Высокая, вынослив" },
+        { text: "Я предпочитаю еду...", v: "Теплую, маслянистую", p: "Прохладную, острую", k: "Сухую, легкую, пряную" },
+        { text: "Мои сновидения...", v: "Тревожные, частые", p: "Страстные, яркие", k: "Спокойные, романтичные" },
+        { text: "Я в коллективе...", v: "Легко завожу друзей", p: "Лидер, организую", k: "Миротворец, все любят" },
+        { text: "Мой интерес к сексу...", v: "Переменчивый, фантазии", p: "Страстный, активный", k: "Постоянный, нежный" },
+        { text: "Я обычно делаю дела...", v: "Быстро, хаотично", p: "Целенаправленно, четко", k: "Медленно, методично" },
+        { text: "Мои зубы...", v: "Неровные, мелкие", p: "Средние, с желтизной", k: "Крупные, белые, ровные" },
+        { text: "Я чувствителен к...", v: "Звукам, прикосновениям", p: "Свету, критике", k: "Запахам, холоду" },
+        { text: "Мой язык (орган)...", v: "Тонкий, сухой", p: "Розовый, острый", k: "Толстый, влажный" },
+        { text: "Я склонен к...", v: "Нервозности", p: "Воспалениям", k: "Простудам, застоям" },
+        { text: "Моя любимая поза во сне...", v: "Свернувшись калачиком", p: "Звезда, раскинувшись", k: "На животе или спине" },
+        { text: "Я реагирую на новое...", v: "С интересом, но быстро остываю", p: "Активно, внедряю", k: "Осторожно, привыкаю" },
+        { text: "Мое настроение...", v: "Меняется быстро", p: "Стабильно, но вспыльчиво", k: "Ровное, трудно вывести" },
+        { text: "Я считаю себя...", v: "Творческим и легким", p: "Целеустремленным и страстным", k: "Надежным и спокойным" }
+    ];
+
+    // ---------- 24 уточняющих вопроса (дополнительные признаки) ----------
+    const detailQuestions = [
+        { text: "Я часто чувствую сухость в носу или горле?", v: "Да, часто", p: "Редко", k: "Ощущение влажности" },
+        { text: "Мой аппетит утром...", v: "Отсутствует", p: "Хороший, хочется плотно поесть", k: "Лёгкий, могу обойтись чаем" },
+        { text: "Как я реагирую на критику?", v: "Обижаюсь, тревожусь", p: "Спорю, злюсь", k: "Спокойно, пропускаю мимо" },
+        { text: "Температура моих рук...", v: "Холодные", p: "Горячие", k: "Прохладные, влажные" },
+        { text: "Я чаще всего испытываю жажду?", v: "Неравномерно", p: "Постоянно, хочу холодного", k: "Редко" },
+        { text: "Мой ум обычно...", v: "Скачет, много мыслей", p: "Сфокусирован, целевой", k: "Спокойный, расслабленный" },
+        { text: "Кожа головы...", v: "Сухая, перхоть", p: "Жирная, раздражение", k: "Умеренная" },
+        { text: "Я быстро завожу новые знакомства?", v: "Очень легко", p: "Избирательно", k: "Медленно, но надолго" },
+        { text: "Мой смех...", v: "Громкий, порывистый", p: "Интенсивный, заразительный", k: "Тихий, сдержанный" },
+        { text: "Я первым начинаю разговор?", v: "Часто", p: "Когда нужно", k: "Жду, пока обратятся" },
+        { text: "Как я переношу ожидание?", v: "Тяжело, нервничаю", p: "Раздражаюсь", k: "Спокойно" },
+        { text: "Мне снятся кошмары?", v: "Иногда", p: "Редко, скорее страстные сны", k: "Почти никогда" },
+        { text: "У меня бывают спазмы или колики?", v: "Да", p: "Изжога", k: "Тяжесть" },
+        { text: "Я предпочитаю темп речи...", v: "Быстрый", p: "Четкий, громкий", k: "Медленный, тихий" },
+        { text: "Мой почерк...", v: "Мелкий, неровный", p: "Острый, наклонный", k: "Крупный, круглый" },
+        { text: "Я люблю путешествовать спонтанно?", v: "Обожаю", p: "Если это спланировано", k: "Не люблю суету" },
+        { text: "Мне часто бывает лень?", v: "Нет, скорее беспокойство", p: "Иногда, после работы", k: "Часто" },
+        { text: "Я зябну даже в тепле?", v: "Бывает", p: "Редко, мне жарко", k: "Нет" },
+        { text: "У меня твёрдый решительный взгляд?", v: "Нет", p: "Да", k: "Мягкий" },
+        { text: "Я коплю вещи?", v: "Нет, выбрасываю", p: "Только нужное", k: "Да, тяжело расстаюсь" },
+        { text: "Мне нравится учить других?", v: "Делиться идеями", p: "Наставлять, указывать", k: "Помогать" },
+        { text: "Мой нос часто заложен?", v: "Сухость", p: "Аллергия", k: "Слизь, насморк" },
+        { text: "Я быстро моргаю?", v: "Да", p: "Нормально", k: "Редко" },
+        { text: "Мне сложно начать дело?", v: "Легко, но бросаю", p: "Начинаю резко", k: "Долго раскачиваюсь" }
+    ];
+
+    // состояние
+    let mainAnswers = new Array(36).fill(null);
+    let detailAnswers = new Array(24).fill(null);
+    let currentMainIndex = 0;
+    let currentDetailIndex = 0;
+    let mainCounts = { v:0, p:0, k:0 };
+    let detailCounts = { v:0, p:0, k:0 };
+
+    // canvas
+    const canvases = {
+        v: document.getElementById('flowerVata'),
+        p: document.getElementById('flowerPitta'),
+        k: document.getElementById('flowerKapha')
+    };
+    const ctx = {
+        v: canvases.v.getContext('2d'),
+        p: canvases.p.getContext('2d'),
+        k: canvases.k.getContext('2d')
+    };
+
+    function drawFlower(type, stage) {
+        const canvas = canvases[type];
+        const c = ctx[type];
+        c.clearRect(0,0,140,150);
+        const s = Math.min(12, Math.max(1, stage));
+        c.fillStyle = '#ab8e6a';
+        c.fillRect(30,120,80,25);
+        c.fillStyle = '#6d8f6d';
+        c.fillRect(40,100,60,25);
+        let stemHeight = 20 + s*4;
+        c.fillStyle = '#53823b';
+        c.fillRect(68,120-stemHeight,8,stemHeight);
+        if (type === 'v') {
+            c.fillStyle = '#b39bc8';
+            for (let i=0; i<3+s%5; i++) {
+                c.beginPath();
+                c.ellipse(72+(i-1)*10, 90-stemHeight+i*6, 8+s*0.3, 12, 0, 0, Math.PI*2);
+                c.fillStyle = '#b19cd9';
+                c.fill();
+            }
+        } else if (type === 'p') {
+            c.fillStyle = '#f09c5a';
+            for (let i=0; i<4; i++) {
+                c.beginPath();
+                c.ellipse(72+(i-2)*11, 86-stemHeight+i*4, 10, 16, 0.2, 0, Math.PI*2);
+                c.fillStyle = '#f38b3e';
+                c.fill();
+            }
+        } else {
+            c.fillStyle = '#6da68a';
+            for (let i=0; i<4; i++) {
+                c.beginPath();
+                c.arc(72+(i-2)*12, 86-stemHeight+i*5, 10+s*0.5, 0, Math.PI*2);
+                c.fillStyle = '#4e9e81';
+                c.fill();
+            }
+        }
+        c.fillStyle = '#f3d674';
+        c.beginPath();
+        c.arc(72, 84-stemHeight, 8, 0, 2*Math.PI);
+        c.fill();
+    }
+
+    function updateFlowersFromMain() {
+        let maxMain = 12; // 36 вопросов /3 = 12 максимум на дошу
+        drawFlower('v', Math.min(12, Math.floor((mainCounts.v / maxMain) * 12) + 1));
+        drawFlower('p', Math.min(12, Math.floor((mainCounts.p / maxMain) * 12) + 1));
+        drawFlower('k', Math.min(12, Math.floor((mainCounts.k / maxMain) * 12) + 1));
+    }
+
+    // подсчёт main из массива
+    function recalcMain() {
+        mainCounts = { v:0, p:0, k:0 };
+        for (let a of mainAnswers) { if (a === 'v') mainCounts.v++; else if (a === 'p') mainCounts.p++; else if (a === 'k') mainCounts.k++; }
+    }
+
+    function recalcDetail() {
+        detailCounts = { v:0, p:0, k:0 };
+        for (let a of detailAnswers) { if (a === 'v') detailCounts.v++; else if (a === 'p') detailCounts.p++; else if (a === 'k') detailCounts.k++; }
+    }
+
+    // рендер основного вопроса
+    function renderMainQuestion() {
+        const q = mainQuestions[currentMainIndex];
+        document.getElementById('questionDisplay').innerText = q.text;
+        const sel = mainAnswers[currentMainIndex];
+        document.getElementById('answersContainer').innerHTML = `
+            <div class="answer-btn vata ${sel==='v'?'selected-v':''}" data-dosha="v"><span class="dot vata-dot"></span>${q.v}</div>
+            <div class="answer-btn pitta ${sel==='p'?'selected-p':''}" data-dosha="p"><span class="dot pitta-dot"></span>${q.p}</div>
+            <div class="answer-btn kapha ${sel==='k'?'selected-k':''}" data-dosha="k"><span class="dot kapha-dot"></span>${q.k}</div>
+        `;
+        document.querySelectorAll('.answer-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let dosha = btn.dataset.dosha;
+                if (mainAnswers[currentMainIndex] === dosha) {
+                    // снять ответ
+                    mainAnswers[currentMainIndex] = null;
+                } else {
+                    mainAnswers[currentMainIndex] = dosha;
+                }
+                recalcMain();
+                updateFlowersFromMain();
+                renderMainQuestion();
+            });
+        });
+        document.getElementById('prevBtn').disabled = (currentMainIndex === 0);
+        const nextBtn = document.getElementById('nextBtn');
+        nextBtn.disabled = (mainAnswers[currentMainIndex] === null);
+        document.getElementById('questionCounter').innerText = `Вопрос ${currentMainIndex+1} / 36`;
+        document.getElementById('progressFill').style.width = `${((currentMainIndex+1)/36)*100}%`;
+        if (currentMainIndex === 35 && mainAnswers[35] !== null) {
+            document.getElementById('submitArea').innerHTML = '<button class="btn-small" id="showInterimBtn">🌸 предварительный итог</button>';
+            document.getElementById('showInterimBtn')?.addEventListener('click', showInterim);
+        } else {
+            document.getElementById('submitArea').innerHTML = '';
+        }
+    }
+
+    function showInterim() {
+        document.getElementById('quizScreen').classList.remove('active');
+        document.getElementById('interimScreen').classList.add('active');
+        let total = mainCounts.v + mainCounts.p + mainCounts.k;
+        let vPerc = Math.round((mainCounts.v/36)*100);
+        let pPerc = Math.round((mainCounts.p/36)*100);
+        let kPerc = 100 - vPerc - pPerc;
+        document.getElementById('interimChart').innerHTML = `
+            <div class="result-row"><span class="bar-label vata-label">ВАТА</span><div class="bar-bg"><div class="bar-fill vata-fill" style="width:${vPerc}%">${vPerc}%</div></div></div>
+            <div class="result-row"><span class="bar-label pitta-label">ПИТТА</span><div class="bar-bg"><div class="bar-fill pitta-fill" style="width:${pPerc}%">${pPerc}%</div></div></div>
+            <div class="result-row"><span class="bar-label kapha-label">КАПХА</span><div class="bar-bg"><div class="bar-fill kapha-fill" style="width:${kPerc}%">${kPerc}%</div></div></div>
+        `;
+        let dominant = (mainCounts.v>=mainCounts.p && mainCounts.v>=mainCounts.k) ? 'вата' : (mainCounts.p>=mainCounts.k ? 'питта' : 'капха');
+        if (Math.max(mainCounts.v, mainCounts.p, mainCounts.k) < 15) dominant = 'смешанный тип';
+        document.getElementById('interimRecommendation').innerHTML = `<strong>🌿 предварительно: ${dominant}</strong><br>Далее уточняющие вопросы помогут углубить результат.`;
+    }
+
+    // уточняющие
+    function renderDetailQuestion() {
+        const q = detailQuestions[currentDetailIndex];
+        document.getElementById('detailQuestionDisplay').innerText = q.text;
+        const sel = detailAnswers[currentDetailIndex];
+        document.getElementById('detailAnswersContainer').innerHTML = `
+            <div class="answer-btn vata ${sel==='v'?'selected-v':''}" data-dosha="v"><span class="dot vata-dot"></span>${q.v}</div>
+            <div class="answer-btn pitta ${sel==='p'?'selected-p':''}" data-dosha="p"><span class="dot pitta-dot"></span>${q.p}</div>
+            <div class="answer-btn kapha ${sel==='k'?'selected-k':''}" data-dosha="k"><span class="dot kapha-dot"></span>${q.k}</div>
+        `;
+        document.querySelectorAll('#detailAnswersContainer .answer-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let dosha = btn.dataset.dosha;
+                if (detailAnswers[currentDetailIndex] === dosha) {
+                    detailAnswers[currentDetailIndex] = null;
+                } else {
+                    detailAnswers[currentDetailIndex] = dosha;
+                }
+                recalcDetail();
+                renderDetailQuestion();
+            });
+        });
+        document.getElementById('detailPrevBtn').disabled = (currentDetailIndex === 0);
+        const nextBtn = document.getElementById('detailNextBtn');
+        nextBtn.disabled = (detailAnswers[currentDetailIndex] === null);
+        document.getElementById('questionCounter').innerText = `Уточнение ${currentDetailIndex+1} / 24`;
+        document.getElementById('progressFill').style.width = `${((currentDetailIndex+1)/24)*100}%`;
+        if (currentDetailIndex === 23 && detailAnswers[23] !== null) {
+            document.getElementById('detailSubmitArea').innerHTML = '<button class="btn-small" id="showFinalBtn">🌸 финальный результат</button>';
+            document.getElementById('showFinalBtn')?.addEventListener('click', showFinal);
+        } else {
+            document.getElementById('detailSubmitArea').innerHTML = '';
+        }
+    }
+
+    function showFinal() {
+        document.getElementById('detailScreen').classList.remove('active');
+        document.getElementById('finalResultScreen').classList.add('active');
+        let totalV = mainCounts.v + detailCounts.v;
+        let totalP = mainCounts.p + detailCounts.p;
+        let totalK = mainCounts.k + detailCounts.k;
+        let grandTotal = totalV + totalP + totalK; // 60
+        let vPerc = Math.round((totalV/grandTotal)*100);
+        let pPerc = Math.round((totalP/grandTotal)*100);
+        let kPerc = 100 - vPerc - pPerc;
+        document.getElementById('finalChart').innerHTML = `
+            <div class="result-row"><span class="bar-label vata-label">ВАТА</span><div class="bar-bg"><div class="bar-fill vata-fill" style="width:${vPerc}%">${vPerc}%</div></div></div>
+            <div class="result-row"><span class="bar-label pitta-label">ПИТТА</span><div class="bar-bg"><div class="bar-fill pitta-fill" style="width:${pPerc}%">${pPerc}%</div></div></div>
+            <div class="result-row"><span class="bar-label kapha-label">КАПХА</span><div class="bar-bg"><div class="bar-fill kapha-fill" style="width:${kPerc}%">${kPerc}%</div></div></div>
+        `;
+        let max = Math.max(totalV, totalP, totalK);
+        let dominant = (max === totalV) ? 'вата' : (max === totalP ? 'питта' : 'капха');
+        if (totalV===totalP || totalP===totalK || totalV===totalK) dominant = 'смешанный';
+        document.getElementById('finalRecommendation').innerHTML = `<strong>🌸 ваша доша: ${dominant.toUpperCase()}</strong><br>Рекомендации: тёплая маслянистая пища для ваты, охлаждающая для питты, лёгкая и сухая для капхи. Детальнее — по доминанте.`;
+    }
+
+    // копирование финала (работает и на телефоне)
+    document.getElementById('finalCopyBtn').addEventListener('click', ()=>{
+        let totalV = mainCounts.v + detailCounts.v;
+        let totalP = mainCounts.p + detailCounts.p;
+        let totalK = mainCounts.k + detailCounts.k;
+        let grand = totalV+totalP+totalK;
+        let vPerc = Math.round((totalV/grand)*100);
+        let pPerc = Math.round((totalP/grand)*100);
+        let kPerc = 100 - vPerc - pPerc;
+        let text = `🌿 Аюрведа — цветущий сад (полный тест)\nВата: ${vPerc}%\nПитта: ${pPerc}%\nКапха: ${kPerc}%\nПодробнее на сайте.`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => alert('Скопировано!')).catch(() => fallbackCopy(text));
+        } else {
+            fallbackCopy(text);
+        }
+        function fallbackCopy(t) {
+            let ta = document.createElement('textarea');
+            ta.value = t;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            alert('Скопировано (резервный метод)');
+        }
+    });
+
+    // сброс
+    function restart() {
+        mainAnswers = new Array(36).fill(null);
+        detailAnswers = new Array(24).fill(null);
+        currentMainIndex = 0; currentDetailIndex = 0;
+        recalcMain(); recalcDetail();
+        updateFlowersFromMain();
+        document.getElementById('startScreen').classList.add('active');
+        document.getElementById('quizScreen').classList.remove('active');
+        document.getElementById('interimScreen').classList.remove('active');
+        document.getElementById('detailScreen').classList.remove('active');
+        document.getElementById('finalResultScreen').classList.remove('active');
+    }
+
+    // навигация
+    document.getElementById('startBtn').addEventListener('click', ()=>{
+        restart();
+        document.getElementById('startScreen').classList.remove('active');
+        document.getElementById('quizScreen').classList.add('active');
+        renderMainQuestion();
+    });
+    document.getElementById('prevBtn').addEventListener('click', ()=>{
+        if (currentMainIndex > 0) { currentMainIndex--; renderMainQuestion(); }
+    });
+    document.getElementById('nextBtn').addEventListener('click', ()=>{
+        if (mainAnswers[currentMainIndex] !== null && currentMainIndex < 35) {
+            currentMainIndex++; renderMainQuestion();
+        }
+    });
+    document.getElementById('continueToDetailed').addEventListener('click', ()=>{
+        document.getElementById('interimScreen').classList.remove('active');
+        document.getElementById('detailScreen').classList.add('active');
+        currentDetailIndex = 0;
+        renderDetailQuestion();
+    });
+    document.getElementById('restartFromInterim').addEventListener('click', restart);
+    document.getElementById('detailPrevBtn').addEventListener('click', ()=>{
+        if (currentDetailIndex > 0) { currentDetailIndex--; renderDetailQuestion(); }
+    });
+    document.getElementById('detailNextBtn').addEventListener('click', ()=>{
+        if (detailAnswers[currentDetailIndex] !== null && currentDetailIndex < 23) {
+            currentDetailIndex++; renderDetailQuestion();
+        }
+    });
+    document.getElementById('finalRestartBtn').addEventListener('click', restart);
+
+    // инициализация цветов
+    drawFlower('v',1);
+    drawFlower('p',1);
+    drawFlower('k',1);
+    restart();
+})();
+</script>
+</body>
+</html>
